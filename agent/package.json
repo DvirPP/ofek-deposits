@@ -1,0 +1,14 @@
+{
+  "name": "ofek-agent",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "2.0.143",
+    "ai": "5.0.292",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "zod": "3.25.76"
+  }
+}

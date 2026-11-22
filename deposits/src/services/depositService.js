@@ -1,6 +1,5 @@
 const db = require("../integration/db");
 
-const ILS_RATES = { ILS: 1, USD: 3.7, EUR: 4 };
 const APPROVAL_THRESHOLD_ILS = 1_000_000;
 const RETRYABLE_FAILURES = new Set([
   "Core banking timeout",
@@ -33,7 +32,8 @@ async function apply(deposit) {
     }
 
     const customer = await findCustomer(deposit.customerId);
-    const decision = classify(deposit, customer);
+    const rates = await loadRates();
+    const decision = classify(deposit, customer, rates);
     await db.query(
       `INSERT INTO deposits (
          deposit_id, load_id, customer_id, account_number, deposit_type, amount, currency,
@@ -96,7 +96,7 @@ async function apply(deposit) {
       reason: decision.reason,
       amount: numberOrNull(deposit.amount),
       currency: deposit.currency ?? null,
-      amountIls: ilsValue(deposit),
+      amountIls: ilsValue(deposit, rates),
       availableForWithdrawal: decision.decision === "credited" && deposit.depositType !== "Term Deposit",
     };
   });
@@ -125,10 +125,17 @@ async function findCustomer(customerId) {
   return found.rows[0] ?? null;
 }
 
-function classify(deposit, customer) {
+async function loadRates() {
+  const found = await db.query("SELECT currency, ils_per_unit FROM exchange_rates");
+  const rates = {};
+  for (const row of found.rows) rates[row.currency] = Number(row.ils_per_unit);
+  return rates;
+}
+
+function classify(deposit, customer, rates) {
   const amount = numberOrNull(deposit.amount);
   const currency = String(deposit.currency ?? "").trim();
-  const structural = structuralReason(deposit, customer, amount, currency);
+  const structural = structuralReason(deposit, customer, amount, currency, rates);
   if (structural) return { decision: "rejected", reason: structural };
 
   const prior = String(deposit.failureReason ?? "").trim();
@@ -136,19 +143,19 @@ function classify(deposit, customer) {
     return { decision: "rejected", reason: prior };
   }
   if (customer.status === "Frozen") return { decision: "rejected", reason: "Account is frozen" };
-  if (ilsValue(deposit) > APPROVAL_THRESHOLD_ILS) {
+  if (ilsValue(deposit, rates) > APPROVAL_THRESHOLD_ILS) {
     return { decision: "pending_approval", reason: "Amount exceeds 1000000 ILS" };
   }
   return { decision: "credited", reason: null };
 }
 
-function structuralReason(deposit, customer, amount, currency) {
+function structuralReason(deposit, customer, amount, currency, rates) {
   if (!String(deposit.customerId ?? "").trim() || !customer) return "Customer does not exist";
   if (customer.account_number && deposit.accountNumber && customer.account_number !== deposit.accountNumber) {
     return "Account number does not match customer";
   }
   if (amount === null || amount <= 0) return "Invalid deposit amount";
-  if (!Object.prototype.hasOwnProperty.call(ILS_RATES, currency)) return "Unsupported currency";
+  if (!Object.prototype.hasOwnProperty.call(rates, currency)) return "Unsupported currency";
   if (!isIsoDate(deposit.depositDate)) return "Invalid deposit date";
   if (deposit.depositType === "Term Deposit" && !isIsoDate(deposit.maturityDate)) {
     return "Term deposit is missing a maturity date";
@@ -156,9 +163,9 @@ function structuralReason(deposit, customer, amount, currency) {
   return null;
 }
 
-function ilsValue(deposit) {
+function ilsValue(deposit, rates) {
   const amount = numberOrNull(deposit.amount);
-  const rate = ILS_RATES[String(deposit.currency ?? "").trim()];
+  const rate = rates[String(deposit.currency ?? "").trim()];
   if (amount === null || rate === undefined) return 0;
   return amount * rate;
 }
@@ -180,4 +187,4 @@ function empty(value) {
   return value;
 }
 
-module.exports = { parse, apply, ILS_RATES };
+module.exports = { parse, apply };

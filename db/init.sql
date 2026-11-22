@@ -88,3 +88,41 @@ CREATE TABLE balances (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (account_number, currency)
 );
+
+CREATE VIEW agent_customers WITH (security_invoker = false) AS
+SELECT
+  customer_id,
+  full_name,
+  email,
+  city,
+  segment,
+  branch_code,
+  branch_name,
+  account_number,
+  status,
+  opened_date
+FROM customers;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'agent_reader') THEN
+    CREATE ROLE agent_reader LOGIN PASSWORD 'agent_reader' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+END
+$$;
+
+CREATE TABLE exchange_rates (
+  currency text PRIMARY KEY,
+  ils_per_unit numeric NOT NULL
+);
+
+INSERT INTO exchange_rates (currency, ils_per_unit) VALUES
+  ('ILS', 1),
+  ('USD', 3.7),
+  ('EUR', 4);
+
+GRANT CONNECT ON DATABASE ofek TO agent_reader;
+GRANT USAGE ON SCHEMA public TO agent_reader;
+GRANT SELECT ON agent_customers, deposits, movements, balances, load_journal, exchange_rates TO agent_reader;
+ALTER ROLE agent_reader SET default_transaction_read_only = on;
+ALTER ROLE agent_reader SET statement_timeout = '5s';

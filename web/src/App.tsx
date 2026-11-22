@@ -7,13 +7,17 @@ import type { Session } from "./types";
 
 export function App() {
   const [session, setSession] = useState<Session | null>(() => readSession());
-  const [health, setHealth] = useState({ desk: false, agent: false });
+  const [health, setHealth] = useState({ desk: false, agent: false, deposits: false });
 
   useEffect(() => {
     let live = true;
     const tick = async () => {
-      const [desk, agent] = await Promise.all([ping("/api/health"), ping("/agent/health")]);
-      if (live) setHealth({ desk, agent });
+      const [desk, agent, deposits] = await Promise.all([
+        ping("/api/health"),
+        ping("/agent/health"),
+        ping("/ledger/health"),
+      ]);
+      if (live) setHealth({ desk, agent, deposits });
     };
     void tick();
     const timer = window.setInterval(() => void tick(), 15000);
@@ -34,6 +38,7 @@ export function App() {
         </div>
         <div className="health">
           <Service name="דלפק" up={health.desk} />
+          <Service name="הפקדות" up={health.deposits} />
           <Service name="סוכן" up={health.agent} />
         </div>
         <div className="who">

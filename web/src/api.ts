@@ -1,4 +1,13 @@
-import type { AgentAnswer, DecisionResult, LoadPreview, Session } from "./types";
+import type {
+  AgentAnswer,
+  DecisionResult,
+  DepositCase,
+  PendingSummary,
+  ProcessResult,
+  LoadPreview,
+  Session,
+  StatusEvent,
+} from "./types";
 
 const SESSION_KEY = "ofek.session";
 
@@ -74,6 +83,68 @@ export function decide(loadId: string, decision: "yes" | "no"): Promise<Decision
   });
 }
 
+export function pendingQueue(): Promise<PendingSummary> {
+  return request<PendingSummary>("/api/processing/pending");
+}
+
+export function processPending(): Promise<ProcessResult> {
+  return request<ProcessResult>("/api/processing", { method: "POST" });
+}
+
+export function retryDeposits(depositIds: string[]): Promise<ProcessResult> {
+  return request<ProcessResult>("/api/retries", {
+    method: "POST",
+    body: JSON.stringify({ depositIds }),
+  });
+}
+
+export function readCase(depositId: string): Promise<DepositCase> {
+  return request<DepositCase>(`/ledger/deposits/${encodeURIComponent(depositId)}`);
+}
+
+export function readHistory(depositId: string): Promise<StatusEvent[]> {
+  return request<{ events: StatusEvent[] }>(`/ledger/deposits/${encodeURIComponent(depositId)}/history`).then(
+    (body) => body.events,
+  );
+}
+
+export function listCases(status: string): Promise<DepositCase[]> {
+  return request<{ deposits: DepositCase[] }>(`/ledger/deposits?status=${encodeURIComponent(status)}`).then(
+    (body) => body.deposits,
+  );
+}
+
+export function decideApproval(depositId: string, decision: "approve" | "reject"): Promise<DepositCase> {
+  return request<DepositCase>(`/ledger/deposits/${encodeURIComponent(depositId)}/approval`, {
+    method: "POST",
+    body: JSON.stringify({ decision }),
+  });
+}
+
+export async function downloadRejections(loadId: string): Promise<void> {
+  const headers = new Headers();
+  const token = readSession()?.token;
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  let response: Response;
+  try {
+    response = await fetch(`/api/loads/${encodeURIComponent(loadId)}/rejections`, { headers });
+  } catch {
+    throw new ApiError(0, "unavailable", "The service is unavailable");
+  }
+  if (!response.ok) {
+    const payload = await readPayload(response);
+    const record = payload as { error?: string; code?: string };
+    throw new ApiError(response.status, record.code ?? "internal", record.error ?? "Request failed");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `rejections-${loadId}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ask(question: string): Promise<AgentAnswer> {
   return request<AgentAnswer>("/agent/ask", {
     method: "POST",
@@ -81,7 +152,7 @@ export function ask(question: string): Promise<AgentAnswer> {
   });
 }
 
-async function request<T>(path: string, init: RequestInit, withAuth = true): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, withAuth = true): Promise<T> {
   const headers = new Headers(init.headers);
   if (withAuth) {
     const token = readSession()?.token;

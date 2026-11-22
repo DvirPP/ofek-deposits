@@ -33,13 +33,13 @@ async function waitForKafka() {
   throw lastError;
 }
 
-async function publishDeposits(loadId, deposits) {
+async function publishDeposits(deposits) {
   if (deposits.length === 0) return;
   await producer.send({
     topic: config.kafkaTopic,
     messages: deposits.map((deposit) => ({
       key: deposit.depositId,
-      value: JSON.stringify({ loadId, ...deposit.payload }),
+      value: JSON.stringify(deposit),
     })),
   });
 }

@@ -15,6 +15,10 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/agent/, ""),
         timeout: 120_000,
       },
+      "/ledger": {
+        target: "http://localhost:3002",
+        rewrite: (path) => path.replace(/^\/ledger/, ""),
+      },
     },
   },
 });

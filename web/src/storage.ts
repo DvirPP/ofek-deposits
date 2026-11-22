@@ -1,11 +1,10 @@
-import type { DecisionResult, FileAmount, JournalEntry, LoadPreview } from "./types";
+import type { DecisionResult, JournalEntry, LoadPreview } from "./types";
 
 const DESK_KEY = "ofek.desk";
 const JOURNAL_KEY = "ofek.journal";
 
 export type StoredDesk = {
   preview: LoadPreview;
-  amounts: Record<string, FileAmount>;
   decision: DecisionResult | null;
 };
 

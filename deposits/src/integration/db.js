@@ -1,10 +1,15 @@
 const { AsyncLocalStorage } = require("async_hooks");
-const { Pool } = require("pg");
+const { types, Pool } = require("pg");
 const { config } = require("../config");
+
+types.setTypeParser(1082, (value) => value);
 
 class Database {
   constructor() {
-    this.pool = new Pool({ connectionString: config.databaseUrl });
+    this.pool = new Pool({
+      connectionString: config.databaseUrl,
+      options: "-c search_path=deposits",
+    });
     this.transactions = new AsyncLocalStorage();
   }
 

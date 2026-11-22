@@ -40,10 +40,16 @@ async function save(customers, loadId) {
     );
     saved.add(customer.customerId);
   }
-  const existing = await db.query("SELECT customer_id FROM customers");
-  const ids = new Set(saved);
-  for (const row of existing.rows) ids.add(row.customer_id);
-  return { ids, saved: saved.size };
+  return { saved: saved.size };
 }
 
-module.exports = { save };
+async function directory() {
+  const found = await db.query("SELECT customer_id, account_number, status FROM customers");
+  return found.rows.map((row) => ({
+    customerId: row.customer_id,
+    accountNumber: row.account_number,
+    status: row.status,
+  }));
+}
+
+module.exports = { save, directory };

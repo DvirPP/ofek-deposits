@@ -1,13 +1,11 @@
 const express = require("express");
 const { config } = require("./config");
 const db = require("./integration/db");
-const drafts = require("./integration/redis");
 const { waitForKafka } = require("./integration/kafka");
 const deskRoutes = require("./routes/deskRoutes");
 
 async function main() {
   await db.waitUntilReady();
-  await drafts.waitUntilReady();
   await waitForKafka();
 
   const app = express();

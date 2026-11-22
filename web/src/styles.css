@@ -205,7 +205,20 @@ textarea { resize: vertical; }
 .data th { position: sticky; top: 0; background: #f7f3ea; font-weight: 500; }
 .data tr[data-action="will_not_load"] { background: #f8ecea; }
 .data tr[data-action="already_exists"],
-.data tr[data-action="duplicate_in_file"] { background: #f8f1e4; }
+.data tr[data-action="duplicate_in_file"],
+.data tr[data-action="failed_from_file"] { background: #f8f1e4; }
+.data input { width: auto; }
+
+.status {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid #cfc6b6;
+  font-size: 13px;
+}
+.status.Completed { color: #0e6b52; border-color: #0e6b52; }
+.status.Failed { color: #8d2f2a; border-color: #8d2f2a; }
+.status.PendingApproval { color: #8a5a12; border-color: #c4a574; }
+.button.small { padding: 4px 8px; font-size: 13px; }
 
 .banner { border: 1px solid #e3daca; padding: 12px 14px; margin-top: 12px; }
 .banner.yes { border-color: #0e6b52; }

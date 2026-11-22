@@ -1,7 +1,13 @@
-const { Pool } = require("pg");
+const { types, Pool } = require("pg");
 const { config } = require("../config");
 
-const pool = new Pool({ connectionString: config.databaseUrl, max: 4 });
+types.setTypeParser(1082, (value) => value);
+
+const pool = new Pool({
+  connectionString: config.databaseUrl,
+  max: 4,
+  options: "-c search_path=agent",
+});
 
 function readOnlySql(sql) {
   const text = String(sql ?? "").trim().replace(/;+\s*$/u, "");

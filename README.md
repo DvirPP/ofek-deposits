@@ -28,3 +28,9 @@ Demo banker: username `teller`, password `teller`.
 `POST /loads/:loadId/decision` with `{ "decision": "no" }` deletes the deposit draft and keeps the customers. `{ "decision": "yes" }` publishes every approved deposit to the Kafka topic `deposits.waiting` and returns once that publish finishes.
 
 Deposit drafts live in Redis for 15 minutes. If that window passes, upload the Excel file again.
+
+The deposits service has no HTTP API. After the yes decision it reads `deposits.waiting`, validates the deposit, and publishes the decision to `deposits.decisions`.
+
+A deposit is `credited`, `pending_approval`, or `rejected` with a reason. Only a credit posts a movement. A term deposit is credited but is not added to the available balance. An amount above 1,000,000 ILS waits for a person. The ILS value uses a fixed table, and only for that threshold: ILS 1, USD 3.7, EUR 4.
+
+A repeated message does not credit the account again. A technical failure is retried 3 times and then published to `deposits.dlq`. A failed row from the file is retried only when its reason is `Core banking timeout`, `Kafka broker unavailable`, or `Database deadlock`.

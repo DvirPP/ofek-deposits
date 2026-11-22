@@ -48,3 +48,43 @@ CREATE TABLE customers (
   load_id uuid REFERENCES load_journal (load_id),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE deposits (
+  deposit_id text PRIMARY KEY,
+  load_id uuid NOT NULL,
+  customer_id text,
+  account_number text,
+  deposit_type text,
+  amount numeric,
+  currency text,
+  deposit_date date,
+  term_months integer,
+  interest_rate numeric,
+  maturity_date date,
+  channel text,
+  source_status text,
+  notes text,
+  failure_reason text,
+  attempts integer NOT NULL DEFAULT 0,
+  decision text NOT NULL,
+  decision_reason text,
+  loaded_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE movements (
+  deposit_id text PRIMARY KEY REFERENCES deposits (deposit_id),
+  account_number text NOT NULL,
+  currency text NOT NULL,
+  amount numeric NOT NULL,
+  available_for_withdrawal boolean NOT NULL,
+  maturity_date date,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE balances (
+  account_number text NOT NULL,
+  currency text NOT NULL,
+  available_amount numeric NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account_number, currency)
+);

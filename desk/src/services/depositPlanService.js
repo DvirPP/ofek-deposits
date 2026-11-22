@@ -19,7 +19,7 @@ async function approved(loadId) {
   const plans = await drafts.read(loadId);
   if (!plans) return null;
   return plans
-    .filter((plan) => plan.action === "will_load" && plan.depositId)
+    .filter((plan) => plan.depositId)
     .map((plan) => ({ depositId: plan.depositId, payload: plan.payload }));
 }
 

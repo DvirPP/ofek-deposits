@@ -46,6 +46,18 @@ services:
       timeout: 3s
       retries: 20
 
+  deposits:
+    build: ./deposits
+    environment:
+      DATABASE_URL: postgres://ofek:ofek@postgres:5432/ofek
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_WAITING_TOPIC: deposits.waiting
+      KAFKA_DECISION_TOPIC: deposits.decisions
+      KAFKA_DLQ_TOPIC: deposits.dlq
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   desk:
     build: ./desk
     ports:

@@ -1,0 +1,11 @@
+{
+  "name": "ofek-deposits",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "pg": "^8.13.1"
+  }
+}
